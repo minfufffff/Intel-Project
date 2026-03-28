@@ -8,26 +8,22 @@ from sklearn.metrics import accuracy_score, classification_report
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-# โหลด dataset
+
 df = pd.read_csv('data/SMSSpamCollection', sep='\t', header=None)
 df.columns = ['label','text']
 
-# -----------------------------
-# 🔧 Clean (สำคัญมาก)
-# -----------------------------
+
 def clean(text):
     text = text.lower()
-    text = re.sub(r'http\S+|www\S+', ' URL ', text)  # เก็บ signal ของ link
-    text = re.sub(r'\d+', ' NUM ', text)             # เก็บตัวเลข (OTP / เงิน)
+    text = re.sub(r'http\S+|www\S+', ' URL ', text)
+    text = re.sub(r'\d+', ' NUM ', text)
     text = re.sub(r'[^a-zA-Z0-9]', ' ', text)
     return text
 
 df['text'] = df['text'].apply(clean)
 df['label'] = df['label'].map({'ham':0,'spam':1})
 
-# -----------------------------
-# 🔧 Extra Features (rule-based)
-# -----------------------------
+
 def has_link(text):
     return int('url' in text)
 
@@ -38,9 +34,7 @@ def has_money(text):
 df['has_link'] = df['text'].apply(has_link)
 df['has_money'] = df['text'].apply(has_money)
 
-# -----------------------------
-# 🔧 TF-IDF (improved)
-# -----------------------------
+
 tfidf = TfidfVectorizer(
     max_features=5000,
     ngram_range=(1,2),
@@ -54,9 +48,7 @@ X_extra = df[['has_link','has_money']].values
 X = np.hstack((X_text, X_extra))
 y = df['label']
 
-# -----------------------------
-# 🔧 Split (fix imbalance issue)
-# -----------------------------
+
 X_train, X_test, y_train, y_test = train_test_split(
     X, y,
     test_size=0.2,
@@ -64,9 +56,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=42
 )
 
-# -----------------------------
-# 🔧 Model (balanced)
-# -----------------------------
+
 model = LogisticRegression(
     class_weight='balanced',
     max_iter=1000
@@ -74,9 +64,7 @@ model = LogisticRegression(
 
 model.fit(X_train, y_train)
 
-# -----------------------------
-# 🔍 Predict & Evaluate
-# -----------------------------
+
 pred = model.predict(X_test)
 
 acc = accuracy_score(y_test, pred)
@@ -85,8 +73,6 @@ print(f"Accuracy: {acc:.4f}")
 print("\nClassification Report:")
 print(classification_report(y_test, pred))
 
-# -----------------------------
-# 💾 Save model
-# -----------------------------
+
 pickle.dump(model, open('models/spam_model.pkl','wb'))
 pickle.dump(tfidf, open('models/tfidf.pkl','wb'))

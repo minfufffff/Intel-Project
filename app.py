@@ -3,7 +3,6 @@ import pickle
 import re
 import numpy as np
 
-# load models
 wine_model = pickle.load(open('models/wine_model.pkl','rb'))
 spam_model = pickle.load(open('models/spam_model.pkl','rb'))
 tfidf = pickle.load(open('models/tfidf.pkl','rb'))
@@ -15,20 +14,18 @@ menu = st.sidebar.selectbox(
     ["Wine Model Info","Spam Model Info","Test Wine Model","Test Spam Model"]
 )
 
-# -----------------------
 if menu == "Wine Model Info":
     st.header("Wine Quality Prediction 🍷")
 
     st.write("""
-    โมเดลนี้ใช้ Machine Learning เพื่อจำแนกคุณภาพของไวน์ (Good / Bad)
-    โดยใช้ข้อมูลทางเคมีของไวน์ เช่น acidity, alcohol, sulphates เป็นต้น
+    โมเดลนี้ใช้ Machine Learning เพื่อจำแนกคุณภาพของไวน์ (Good / Bad) โดยใช้ข้อมูลทางเคมีของไวน์ เช่น Acidity, Alcohol, Sulphates
     """)
 
     st.subheader("Model Details")
     st.write("""
     - ใช้ Logistic Regression + Random Forest
     - ใช้ StandardScaler กับ Logistic Regression
-    - เลือกโมเดลที่มี performance ดีกว่า (Automatic Selection)
+    - เลือกโมเดลที่มี Accuracy สูงสุด
     """)
 
     st.subheader("Features")
@@ -47,10 +44,14 @@ if menu == "Wine Model Info":
     """)
 
     st.subheader("Model Performance")
-    st.success("Random Forest Accuracy ≈ 0.80+")
-    st.info("Logistic Regression Accuracy ≈ 0.74")
+    st.success("Random Forest Accuracy ≈ 80%")
+    st.info("Logistic Regression Accuracy ≈ 74%")
 
-# -----------------------
+    st.subheader("Dateset")
+    st.write("""
+    ใช้ชุดข้อมูล Wine Quality Dataset จาก UCI Machine Learning Repository
+    """)
+
 elif menu == "Spam Model Info":
     st.header("Spam Detection 📩")
 
@@ -77,10 +78,13 @@ elif menu == "Spam Model Info":
     """)
 
     st.subheader("Model Performance")
-    st.success("Accuracy ≈ 0.98 🔥")
-    st.info("เหมาะสำหรับตรวจจับ Spam ได้แม่นยำสูง")
+    st.success("Accuracy ≈ 0.90")
 
-# -----------------------
+    st.subheader("Dateset")
+    st.write("""
+    ใช้ชุดข้อมูล SMS Spam Collection Dataset จาก UCI Machine Learning Repository
+    """)
+
 elif menu == "Test Wine Model":
     st.header("Predict Wine Quality")
 
@@ -99,11 +103,10 @@ elif menu == "Test Wine Model":
         result = wine_model.predict(data)
 
         if result[0] == 1:
-            st.success("Good Quality 🍷")
+            st.success("Good Quality 👍")
         else:
-            st.error("Bad Quality ❌")
+            st.error("Bad Quality 👎")
 
-# -----------------------
 elif menu == "Test Spam Model":
     st.header("Spam Detection")
 
@@ -111,7 +114,6 @@ elif menu == "Test Spam Model":
 
     if st.button("Check"):
 
-        # 🔧 clean เหมือนตอน train
         def clean(text):
             text = text.lower()
             text = re.sub(r'http\S+|www\S+', ' URL ', text)
@@ -121,7 +123,6 @@ elif menu == "Test Spam Model":
 
         clean_text = clean(text)
 
-        # 🔧 extra features (ต้องเหมือน train!)
         def has_link(text):
             return int('url' in text)
 
@@ -132,18 +133,15 @@ elif menu == "Test Spam Model":
         link_feat = has_link(clean_text)
         money_feat = has_money(clean_text)
 
-        # 🔧 TF-IDF
         vec = tfidf.transform([clean_text]).toarray()
 
-        # 🔧 รวม features (สำคัญ!)
         final_input = np.hstack((vec, [[link_feat, money_feat]]))
 
-        # predict
         result = spam_model.predict(final_input)
         prob = spam_model.predict_proba(final_input)[0][1]
 
         # output
         if result[0] == 1:
-            st.error(f"Spam ❌ (confidence: {prob:.2f})")
+            st.error(f"Spam ❌")
         else:
-            st.success(f"Not Spam ✅ (confidence: {1-prob:.2f})")
+            st.success(f"Not Spam ✅")

@@ -9,14 +9,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
-# โหลด dataset
 df = pd.read_csv('data/winequality-red.csv', sep=';')
 
-# X, y
 X = df.drop('quality', axis=1)
 y = (df['quality'] >= 6).astype(int)
 
-# split (สำคัญ: stratify)
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
@@ -33,22 +30,18 @@ model_rf = RandomForestClassifier(
     random_state=42
 )
 
-# train
 model_lr.fit(X_train, y_train)
 model_rf.fit(X_train, y_train)
 
-# predict
 pred_lr = model_lr.predict(X_test)
 pred_rf = model_rf.predict(X_test)
 
-# accuracy
 acc_lr = accuracy_score(y_test, pred_lr)
 acc_rf = accuracy_score(y_test, pred_rf)
 
 print(f"Logistic Regression Accuracy: {acc_lr:.4f}")
 print(f"Random Forest Accuracy: {acc_rf:.4f}")
 
-# 🔥 เลือกตัวที่ดีที่สุด
 best_model = model_rf if acc_rf > acc_lr else model_lr
 
 print("Best model selected!")
