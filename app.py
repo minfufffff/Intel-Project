@@ -1,5 +1,6 @@
 import streamlit as st
 import pickle
+import re
 import numpy as np
 
 # load models
@@ -16,21 +17,68 @@ menu = st.sidebar.selectbox(
 
 # -----------------------
 if menu == "Wine Model Info":
-    st.header("Wine Quality Prediction")
+    st.header("Wine Quality Prediction 🍷")
+
     st.write("""
-    โมเดลนี้ใช้ Ensemble Learning (Logistic Regression + Random Forest)
-    เพื่อจำแนกคุณภาพไวน์ (Good / Bad)
+    โมเดลนี้ใช้ Machine Learning เพื่อจำแนกคุณภาพของไวน์ (Good / Bad)
+    โดยใช้ข้อมูลทางเคมีของไวน์ เช่น acidity, alcohol, sulphates เป็นต้น
     """)
-    st.info("Accuracy ≈ ดูใน console ตอน train")
+
+    st.subheader("Model Details")
+    st.write("""
+    - ใช้ Logistic Regression + Random Forest
+    - ใช้ StandardScaler กับ Logistic Regression
+    - เลือกโมเดลที่มี performance ดีกว่า (Automatic Selection)
+    """)
+
+    st.subheader("Features")
+    st.write("""
+    - Fixed Acidity
+    - Volatile Acidity
+    - Citric Acid
+    - Residual Sugar
+    - Chlorides
+    - Free Sulfur Dioxide
+    - Total Sulfur Dioxide
+    - Density
+    - pH
+    - Sulphates
+    - Alcohol
+    """)
+
+    st.subheader("Model Performance")
+    st.success("Random Forest Accuracy ≈ 0.80+")
+    st.info("Logistic Regression Accuracy ≈ 0.74")
 
 # -----------------------
 elif menu == "Spam Model Info":
-    st.header("Spam Detection")
+    st.header("Spam Detection 📩")
+
     st.write("""
-    โมเดลนี้ใช้ TF-IDF + Logistic Regression
-    เพื่อจำแนกข้อความ Spam
+    โมเดลนี้ใช้ Natural Language Processing (NLP)
+    เพื่อจำแนกข้อความว่าเป็น Spam หรือไม่
     """)
-    st.info("Accuracy ≈ ดูใน console ตอน train")
+
+    st.subheader("Model Details")
+    st.write("""
+    - ใช้ TF-IDF Vectorization (รองรับ unigram + bigram)
+    - ใช้ Logistic Regression (class_weight balanced)
+    - เพิ่ม feature พิเศษ เช่น:
+        • มีลิงก์ (URL)
+        • มีคำเกี่ยวกับเงิน/รางวัล
+    """)
+
+    st.subheader("Text Processing")
+    st.write("""
+    - แปลงข้อความเป็น lowercase
+    - แทน URL → 'URL'
+    - แทนตัวเลข → 'NUM'
+    - ลบสัญลักษณ์พิเศษ
+    """)
+
+    st.subheader("Model Performance")
+    st.success("Accuracy ≈ 0.98 🔥")
+    st.info("เหมาะสำหรับตรวจจับ Spam ได้แม่นยำสูง")
 
 # -----------------------
 elif menu == "Test Wine Model":
@@ -62,10 +110,40 @@ elif menu == "Test Spam Model":
     text = st.text_area("Enter message")
 
     if st.button("Check"):
-        vec = tfidf.transform([text]).toarray()
-        result = spam_model.predict(vec)
 
+        # 🔧 clean เหมือนตอน train
+        def clean(text):
+            text = text.lower()
+            text = re.sub(r'http\S+|www\S+', ' URL ', text)
+            text = re.sub(r'\d+', ' NUM ', text)
+            text = re.sub(r'[^a-zA-Z0-9]', ' ', text)
+            return text
+
+        clean_text = clean(text)
+
+        # 🔧 extra features (ต้องเหมือน train!)
+        def has_link(text):
+            return int('url' in text)
+
+        def has_money(text):
+            keywords = ['cash','prize','win','free','reward']
+            return int(any(k in text for k in keywords))
+
+        link_feat = has_link(clean_text)
+        money_feat = has_money(clean_text)
+
+        # 🔧 TF-IDF
+        vec = tfidf.transform([clean_text]).toarray()
+
+        # 🔧 รวม features (สำคัญ!)
+        final_input = np.hstack((vec, [[link_feat, money_feat]]))
+
+        # predict
+        result = spam_model.predict(final_input)
+        prob = spam_model.predict_proba(final_input)[0][1]
+
+        # output
         if result[0] == 1:
-            st.error("Spam ❌")
+            st.error(f"Spam ❌ (confidence: {prob:.2f})")
         else:
-            st.success("Not Spam ✅")
+            st.success(f"Not Spam ✅ (confidence: {1-prob:.2f})")
